@@ -1,3 +1,2 @@
-# 「えれべーたー」をクリックするゲーム
-
-https://smison.github.io/elevator/
+# 縁ちゃんやる気出す
+https://smison.github.io/yukari/
