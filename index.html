@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>縁ちゃんやる気出す</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width" >
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+
+  <style type="text/css">
+  #text {
+    font-size: 13px;
+    margin-left: 30px;
+  }
+  p {
+    font-size: 14px;
+  }
+  a:link    { color: #000000; }
+  a:visited { color: #000000; }
+  a:hover   { color: #000000; }
+  a:active  { color: #000000; }
+  </style>
+  <script src='https://cdn.rawgit.com/phi-jp/phina.js/v0.2.0/build/phina.js'></script>
+  <script>
+  //============================================
+  // VARIABLES
+  //============================================
+  phina.globalize();
+  var SCREEN_WIDTH = 600;
+  var SCREEN_HEIGHT = 400;
+  var MAX_YARUKI = 200;
+  var FIRST_YUKARI_X = 300;
+  var FIRST_YUKARI_Y = 280;
+  var FIRST_MAMONO_X = FIRST_YUKARI_X + 15;
+  var FIRST_MAMONO_Y = FIRST_YUKARI_Y - 155;
+  var FIRST_SERIF_X = FIRST_YUKARI_X - 160;
+  var FIRST_SERIF_Y = FIRST_YUKARI_Y - 30;
+  var TITLE = "縁ちゃんやる気出す";
+  var ASSETS = {
+    image: {
+      'yukari_daru': './images/yukari_daru.png',
+      'yukari_doya': './images/yukari_doya.png',
+      'background': './images/background.png',
+      'mamono': './images/mamono.png',
+    },
+    spritesheet: {
+      'yukari_daru_ss': {
+        "frame": {
+          "width": 275,
+          "height": 256,
+          "rows": 1,
+          "cols": 5
+        },
+        "animations": {
+          "normal": {
+            "frames": [0, 1, 2, 3, 4],
+            "next": "normal",
+            "frequency": 2
+          }
+        }
+      },
+      'yukari_doya_ss': {
+        "frame": {
+          "width": 275,
+          "height": 256,
+          "rows": 1,
+          "cols": 5
+        },
+        "animations": {
+          "normal": {
+            "frames": [0, 1, 2, 3, 4],
+            "next": "normal",
+            "frequency": 2
+          }
+        }
+      },
+      'mamono_ss': {
+        "frame": {
+          "width": 72,
+          "height": 90,
+          "rows": 1,
+          "cols": 5
+        },
+        "animations": {
+          "normal": {
+            "frames": [0, 1, 2, 3, 4],
+            "next": "normal",
+            "frequency": 2
+          }
+        }
+      },
+      'background_ss': {
+        "frame": {
+          "width": 600,
+          "height": 400,
+          "rows": 1,
+          "cols": 5
+        },
+        "animations": {
+          "normal": {
+            "frames": [0, 1, 2, 3, 4],
+            "next": "normal",
+            "frequency": 2
+          }
+        }
+      }
+    }
+  };
+  var SCENES = [
+    {
+      label: 'title',
+      className: 'TitleScene',
+      nextLabel: 'main'
+    },
+    {
+      label: 'main',
+      className: 'MainScene',
+      nextLabel: 'gameover'
+    },
+    {
+      label: 'gameover',
+      className: 'GameOverScene',
+      nextLabel: 'title',
+    },
+  ];
+
+  //============================================
+  // FUNCTION
+  //============================================
+  // min から max までの乱数を返す関数
+  var getRandomArbitary = function(min, max) {
+    return Math.random() * (max - min) + min;
+  }
+
+  //============================================
+  // タイトルシーン
+  //============================================
+  phina.define('TitleScene', {
+    superClass: 'DisplayScene',
+
+    init: function () {
+      this.superInit({
+        width: SCREEN_WIDTH,
+        height: SCREEN_HEIGHT
+      });
+
+      // 背景
+      this.backgroundLayer = BackgroundLayer().addChildTo(this);
+      var background = Background('background',
+      this.gridX.center(),
+      this.gridY.center());
+      this.backgroundLayer.addChild(background);
+
+      // 縁
+      this.yukari = Yukari('yukari_daru',
+      FIRST_YUKARI_X,
+      FIRST_YUKARI_Y).addChildTo(this);
+
+      // めんどうくさいという魔物
+      this.mamono = Mamono('mamono',
+      FIRST_MAMONO_X,
+      FIRST_MAMONO_Y).addChildTo(this);
+
+      // セリフ
+      this.serif = Serif('だるーい',
+      FIRST_SERIF_X,
+      FIRST_SERIF_Y).addChildTo(this);
+
+      // タイトル
+      this.label = Label(TITLE).addChildTo(this);
+      this.label.x = this.gridX.span(11) + 15;
+      this.label.y = this.gridY.span(2);
+    },
+
+    onclick: function () {
+      this.exit();
+    },
+  });
+
+  phina.define("BackgroundLayer", {
+    superClass: "phina.display.Layer",
+
+    _cameraOffsetX: 0,
+
+    renderChildBySelf: false, // falseのとき子要素を自分で描画する
+    skip: false,
+
+    init: function() {
+      this.superInit({
+        width: SCREEN_WIDTH,
+        height: SCREEN_HEIGHT,
+      });
+      this.setOrigin(0, 0);
+      this.first_y = this.y;
+      this.displacement = 0;
+    },
+
+    update: function() {
+      if(this.displacement >= 0) {
+        this.y = this.first_y + this.displacement;
+      } else {
+        this.y = this.first_y;
+      }
+    }
+  });
+
+  //============================================
+  // メインシーン
+  //============================================
+  phina.define('MainScene', {
+    superClass: 'DisplayScene',
+
+    init: function () {
+      this.superInit({
+        width: SCREEN_WIDTH,
+        height: SCREEN_HEIGHT
+      });
+
+      // 背景
+      this.backgroundLayer = BackgroundLayer().addChildTo(this);
+      this.backgrounds = [];
+      var background = Background('background',
+      this.gridX.center(),
+      this.gridY.center()).addChildTo(this);
+      this.backgroundLayer.addChild(background);
+
+      var background2 = Background('background',
+      this.gridX.center(),
+      this.gridY.center() - SCREEN_HEIGHT).addChildTo(this);
+      this.backgrounds.push(background2);
+      this.backgroundLayer.addChild(background2);
+
+      // 縁
+      this.yukari = Yukari('yukari_daru',
+      FIRST_YUKARI_X,
+      FIRST_YUKARI_Y).addChildTo(this);
+
+      // やる気1
+      this.yaruki = Yaruki().addChildTo(this);
+      this.yaruki.x = this.gridX.span(13) - 10;
+      this.yaruki.y = this.gridY.span(11) + 10;
+
+      // ラベル1
+      this.yaruki_label = Label('や').addChildTo(this);
+      this.yaruki_label.x = this.yaruki.x
+      this.yaruki_label.y = this.yaruki.y - 110;
+      this.yaruki_label.fontSize = 12;
+
+      // やる気2
+      this.yaruki2 = Yaruki().addChildTo(this);
+      this.yaruki2.x = this.yaruki.x + 43;
+      this.yaruki2.y = this.yaruki.y;
+
+      // ラベル2
+      this.yaruki_label2 = Label('る').addChildTo(this);
+      this.yaruki_label2.x = this.yaruki2.x
+      this.yaruki_label2.y = this.yaruki_label.y;
+      this.yaruki_label2.fontSize = this.yaruki_label.fontSize;
+
+      // やる気3
+      this.yaruki3 = Yaruki().addChildTo(this);
+      this.yaruki3.x = this.yaruki.x + 86;
+      this.yaruki3.y = this.yaruki.y;
+
+      // ラベル3
+      this.yaruki_label3 = Label('気').addChildTo(this);
+      this.yaruki_label3.x = this.yaruki3.x
+      this.yaruki_label3.y = this.yaruki_label.y;
+      this.yaruki_label3.fontSize = this.yaruki_label.fontSize;
+
+      // めんどうくさいという魔物
+      this.mamono = Mamono('mamono',
+      FIRST_MAMONO_X,
+      FIRST_MAMONO_Y).addChildTo(this);
+
+      // セリフ
+      this.serif = Serif('だるーい',
+      FIRST_SERIF_X,
+      FIRST_SERIF_Y).addChildTo(this);
+
+      // 諸パラメータ
+      this.clicked = false;
+      this.do_jump = false;
+      this.done_jump = false;
+      this.gravity_accelaration = 9.8;
+      this.first_speed = 0;
+      this.time = 0;
+      this.displacement = 0;
+      this.previous_displacement = 0;
+      this.score = 0;
+      this.frame = 0;
+      this.previous_frame = 0;
+      this.count = 0;
+      this.yukari_mode = "daru";
+
+      // スコアラベル
+      this.label = Label(this.score + 'やる気').addChildTo(this);
+      this.label.x = this.gridX.span(12);
+      this.label.y = this.gridY.span(2);
+
+    },
+
+    update: function () {
+      var updated_yukari_y = 0;
+
+      if(this.clicked && this.displacement >= 0) {
+        // 縁ちゃんをやる気にする
+        if(this.yukari_mode == "daru") {
+          this.yukari.remove();
+          this.yukari = Yukari('yukari_doya',
+          FIRST_YUKARI_X,
+          FIRST_YUKARI_Y).addChildTo(this);
+          this.yukari_mode = "doya";
+
+          // やる気ゲージを止める
+          this.yaruki.is_clicked = true;
+          this.yaruki2.is_clicked = true;
+          this.yaruki3.is_clicked = true;
+
+          // めんどうくさいという魔物を貼り直す
+          this.mamono.remove();
+          this.mamono = Mamono('mamono',
+          FIRST_MAMONO_X,
+          FIRST_MAMONO_Y).addChildTo(this);
+
+          // セリフを貼り直す
+          this.serif.remove();
+          this.serif = Serif('やる気',
+          FIRST_SERIF_X,
+          FIRST_SERIF_Y).addChildTo(this);
+          this.serif.is_yaruki = true;
+        }
+
+        this.count++;
+        if(this.count >= 60) {
+          this.do_jump = true;
+        }
+      }
+
+      // 移動
+      if(this.do_jump) {
+        // 初速度を計算
+        this.first_speed = (this.yaruki.yaruki_fill.height
+          + this.yaruki2.yaruki_fill.height
+          + this.yaruki3.yaruki_fill.height)
+          + 10;
+
+          this.displacement = this.first_speed * this.time
+          - (1 / 2) * this.gravity_accelaration * Math.pow(this.time, 2);
+
+          if(this.displacement > this.previous_displacement) {
+            this.previous_displacement = this.displacement;
+          }
+          this.label.text = parseInt(this.previous_displacement) + "やる気";
+
+          // スクロール用背景追加
+          this.frame = parseInt(this.displacement / SCREEN_HEIGHT);
+          if(this.frame != this.previous_frame) {
+
+            for(var i=1; i <= (this.frame - this.previous_frame); i++){
+              var background = Background('background',
+              this.gridX.center(),
+              this.gridY.center() - SCREEN_HEIGHT * (this.previous_frame + i + 1));
+              this.backgroundLayer.addChild(background);
+            }
+
+            this.previous_frame = this.frame;
+          }
+          this.yukari.displacement = this.displacement;
+          this.backgroundLayer.displacement = this.displacement;
+          this.serif.displacement = this.displacement;
+
+          this.time += 0.3;
+
+          if(this.displacement > 0.01) {
+            this.done_jump = true;
+          }
+        }
+
+        if(this.done_jump && this.displacement <= 0) {
+          this.exit("gameover", {
+            score: parseInt(this.previous_displacement),
+            message: "hoge",
+            url: "url",
+            hashtags: "tag"
+          });
+        }
+      },
+      onpointstart: function (app) {
+        this.clicked = true;
+      },
+    });
+
+    //============================================
+    // ゲームオーバーシーン
+    //============================================
+    phina.define('GameOverScene', {
+      superClass: 'ResultScene',
+
+      init: function () {
+        this.superInit({
+          width: SCREEN_WIDTH,
+          height: SCREEN_HEIGHT,
+          backgroundColor: 'rgb(255, 255, 255)',
+          score: arguments[0].score,
+          message: 'hoge',
+        });
+
+        // デフォルトで表示されているものを消す
+        this.playButton.remove();
+        this.scoreText.remove();
+        this.scoreLabel.remove();
+        this.shareButton.remove();
+
+        // 背景
+        this.backgroundLayer = BackgroundLayer().addChildTo(this);
+        var background = Background('background',
+        this.gridX.center(),
+        this.gridY.center());
+        this.backgroundLayer.addChild(background);
+
+        // 縁
+        this.yukari = Yukari('yukari_daru',
+        FIRST_YUKARI_X,
+        FIRST_YUKARI_Y).addChildTo(this);
+
+        // めんどうくさいという魔物
+        this.mamono = Mamono('mamono',
+        FIRST_MAMONO_X,
+        FIRST_MAMONO_Y).addChildTo(this);
+
+        // セリフ
+        this.serif = Serif('だるーい',
+        FIRST_SERIF_X,
+        FIRST_SERIF_Y).addChildTo(this);
+
+        // 結果ラベル
+        this.resultLabel = Label(arguments[0].score + 'やる気').addChildTo(this);
+        this.resultLabel.x = this.gridX.span(12);
+        this.resultLabel.y = this.gridY.span(2);
+
+        var play_button = PlayButton(this);
+        play_button.x = this.gridX.span(13) + 25;
+        play_button.y = this.gridY.span(7);
+        play_button.addChildTo(this);
+
+        var twitter_share_button = TwitterShareButton(arguments[0].score);
+        twitter_share_button.x = this.gridX.span(13) + 25;
+        twitter_share_button.y = this.gridY.span(13);
+        twitter_share_button.addChildTo(this);
+      },
+    });
+
+    //============================================
+    // パーツ定義
+    //============================================
+    phina.define('Serif', {
+      superClass: 'Label',
+
+      init: function(text, x, y) {
+        this.superInit();
+        this.x = x;
+        this.y = y;
+        this.first_y = y;
+        this.text = text;
+        this.fontSize = 18;
+        this.displacement = 0;
+        this.count = 0;
+        this.is_yaruki = false;
+      },
+
+      update: function() {
+        if(!this.is_yaruki) {
+          if(parseInt(this.count / 70) % 2 == 0) {
+            this.text = 'だるーい';
+          } else {
+            this.text = 'めんどーい';
+          }
+        }
+
+        if(this.is_yaruki) {
+          if(this.count <= 30) {
+            this.text = 'やる気';
+          } else {
+            this.text = "出てきた！";
+          }
+        }
+        this.count++;
+
+        if(this.displacement >= 0) {
+          this.y = this.first_y + this.displacement;
+        } else {
+          this.y = this.first_y;
+        }
+      },
+    });
+
+    phina.define('MoveSprite', {
+      superClass: 'Sprite',
+
+      init: function (image, x, y) {
+        this.superInit(image);
+        this.x = x;
+        this.y = y;
+        this.first_y = y;
+        this.displacement = 0;
+      },
+
+      update: function() {
+        if(this.displacement >= 0) {
+          this.y = this.first_y + this.displacement;
+        } else {
+          this.y = this.first_y;
+        }
+      }
+    });
+
+    phina.define('Yukari', {
+      superClass: 'MoveSprite',
+
+      init: function (image, x, y) {
+        this.superInit(image, x, y);
+        this.anim = FrameAnimation('yukari_daru_ss').attachTo(this);
+        this.anim.gotoAndPlay('normal');
+      },
+    });
+
+    phina.define('Background', {
+      superClass: 'MoveSprite',
+
+      init: function (image, x, y) {
+        this.superInit(image, x, y);
+        this.anim = FrameAnimation('background_ss').attachTo(this);
+        this.anim.gotoAndPlay('normal');
+      },
+    });
+
+    phina.define('Mamono', {
+      superClass: 'Sprite',
+
+      init: function (image, x, y) {
+        this.superInit(image);
+        this.x = x;
+        this.y = y;
+        this.anim = FrameAnimation('mamono_ss').attachTo(this);
+        this.anim.gotoAndPlay('normal');
+      },
+    });
+
+    phina.define('Yaruki', {
+      superClass: 'RectangleShape',
+
+      init: function () {
+        this.superInit({
+          stroke: false,
+          width: 30,
+          height: MAX_YARUKI,
+          fill: 'white',
+          stroke: 'black',
+          strokeWidth: 2,
+        });
+        this.is_clicked = false;
+        this.yaruki_fill = YarukiFill(this.width, MAX_YARUKI / 2).addChildTo(this);
+        this.yaruki_fill.x = 0;
+        this.yaruki_fill.y = MAX_YARUKI / 4;
+      },
+
+      update: function() {
+        if(!this.is_clicked) {
+
+          var fill_val = getRandomArbitary(-15, 15);
+
+          this.yaruki_fill.height += fill_val;
+
+          if(this.yaruki_fill.height <= 0) [
+            this.yaruki_fill.height = 0
+          ]
+
+          if(this.yaruki_fill.height >= MAX_YARUKI) {
+            this.yaruki_fill.height = MAX_YARUKI;
+          }
+          this.yaruki_fill.y = (MAX_YARUKI / 2) - (this.yaruki_fill.height / 2);
+        }
+      }
+    });
+
+    phina.define('YarukiFill', {
+      superClass: 'RectangleShape',
+
+      init: function (w, h) {
+        this.superInit({
+          stroke: false,
+          width: w,
+          height: h,
+          fill: 'black',
+        });
+      }
+    });
+
+    phina.define('TwitterShareButton', {
+      superClass: 'CircleShape',
+
+      init: function (score) {
+        this.superInit({
+          stroke: false,
+          radius: 66,
+          fill: 'rgb(64, 64, 64)',
+          stroke: 'rgb(64, 64, 64)',
+          strokeWidth: 2,
+        });
+        this.setInteractive(true);
+        this.score = score;
+
+        this.label = Label('結果をツイート').addChildTo(this);
+        this.label.x = 0;
+        this.label.y = 0;
+        this.label.fill = 'rgb(255, 255, 255)';
+        this.label.fontSize = 14;
+      },
+
+      onclick: function () {
+        var url = phina.social.Twitter.createURL({
+          text: this.score + "やる気 | 縁ちゃんやる気出す - ゆゆ式 Advent Calendar 2016 https://smison.github.io/yukari/",
+          hashtags: "",
+          url: " https://smison.github.io/yukari/",
+        });
+        window.open(url, 'share window', 'width=480, height=320');
+      },
+    });
+
+    phina.define('PlayButton', {
+      superClass: 'CircleShape',
+
+      init: function (scene) {
+        this.superInit({
+          stroke: false,
+          radius: 66,
+          fill: 'rgb(64, 64, 64)',
+          stroke: 'rgb(64, 64, 64)',
+          strokeWidth: 2,
+        });
+        this.setInteractive(true);
+
+        this.label = Label('もう一回').addChildTo(this);
+        this.label.x = 0;
+        this.label.y = 0;
+        this.label.fill = 'rgb(255, 255, 255)';
+        this.label.fontSize = 14;
+        this.scene = scene;
+      },
+
+      onclick: function () {
+        this.scene.exit();
+      },
+    });
+
+    //============================================
+    // RUN
+    //============================================
+    phina.main(function () {
+      var app = GameApp({
+        query: "#game",
+        width: SCREEN_WIDTH,
+        height: SCREEN_HEIGHT,
+        assets: ASSETS,
+        scenes: SCENES,
+        title: TITLE,
+        fit: false
+      });
+      app.run();
+    });
+    </script>
+  </head>
+  <body>
+    <canvas style="border: solid 1px;" id='game'></canvas>
+
+    <div id="text">
+      <br />
+      <p>縁ちゃんやる気出す | <a href="http://www.adventar.org/calendars/1440" target="_blank">ゆゆ式 Advent Calendar 2016</a></p></p>
+      = 遊び方 =
+      <br />
+      クリックするだけ。</br />
+    </br />
+    <a href="https://github.com/smison/yukari" target="_blank">smison/yukari</a>
+    <br />
+    <a href="https://twitter.com/smison" target="_blank">@smison</a>
+    <br />
+    <br />
+    <a href="https://twitter.com/share" class="twitter-share-button"{count}>Tweet</a>
+    <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+    <br />
+    <br />
+    powered by <a href="http://phinajs.com/" target="_blank">phina.js</a>
+  </div>
+</body>
+</html>
